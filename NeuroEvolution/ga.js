@@ -47,6 +47,7 @@ class Generation {
         let r = Math.random();
         while (r > 0) {
             r -= this.species[index].fitness;
+            // console.log(r)
             index += 1;
         }
 

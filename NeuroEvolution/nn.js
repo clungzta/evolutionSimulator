@@ -17,6 +17,9 @@ class NeuralNetwork {
         // Initialize random weights
         this.input_weights = tf.randomNormal([this.input_nodes, this.hidden_nodes]);
         this.output_weights = tf.randomNormal([this.hidden_nodes, this.output_nodes]);
+        // this.alpha = tf.scalar(tf.randomUniform([1],{'minval' : 0.0, 'maxval' : 0.5}));
+        // this.alpha = tf.scalar(0.05);
+        // console.log(this.alpha)
     }
 
     /**
@@ -26,11 +29,13 @@ class NeuralNetwork {
 
     predict(user_input) {
         let output;
+        // const activation = tf.layers.lstm({ units: 8, returnSequences: true });  
+
         tf.tidy(() => {
             /* Takes a 1D array */
             let input_layer = tf.tensor(user_input, [1, this.input_nodes]);
-            let hidden_layer = input_layer.matMul(this.input_weights).sigmoid();
-            let output_layer = hidden_layer.matMul(this.output_weights).sigmoid();
+            let hidden_layer = input_layer.matMul(this.input_weights).relu();
+            let output_layer = hidden_layer.matMul(this.output_weights).relu();
             output = output_layer.dataSync();
         });
         return output;
@@ -45,6 +50,7 @@ class NeuralNetwork {
         clonie.dispose();
         clonie.input_weights = tf.clone(this.input_weights);
         clonie.output_weights = tf.clone(this.output_weights);
+        // clonie.alpha = tf.clone(this.alpha);
         return clonie;
     }
 

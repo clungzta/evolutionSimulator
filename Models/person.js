@@ -1,3 +1,12 @@
+function vectorWeightedSum(a,b,alpha=0.5)
+{
+	var c = [];
+	for (var i = 0; i < a.length; i++) {
+		c.push(a[i] * alpha + b[i] * (1.0-alpha));
+	}
+	return c
+}
+
 class Person {
 	/**
 	 * Takes in a object with properties : id, x, y upper_length, lower_length, upper_width, lower_width,
@@ -14,10 +23,11 @@ class Person {
 		this.parents = [];
 		this.colors = [];
 		this.params = params;
-		this.brain = new NeuralNetwork(4, 100, 2);
+		this.brain = new NeuralNetwork(25, 100, 2);
 		this.upper_left_leg = Matter.Bodies.rectangle(params.x, params.y, params.upper_width, params.upper_length, {
 			friction: 0.8,
-			restitution: 0.1,
+			frictionAir: 0.01,			
+			restitution: 0.2,
 			density: 0.05,
 			collisionFilter: {
 				category: 0x0002,
@@ -30,12 +40,14 @@ class Person {
 				mask: 0x0001,
 			},
 			friction: 0.8,
+			frictionAir: 0.01,			
 			density: 0.05,
-			restitution: 0.1,
+			restitution: 0.2,
 		});
 		this.upper_right_leg = Matter.Bodies.rectangle(params.x - 1, params.y, params.upper_width, params.upper_length, {
 			friction: 0.8,
-			restitution: 0.1,
+			frictionAir: 0.01,			
+			restitution: 0.2,
 			density: 0.05,
 			collisionFilter: {
 				category: 0x0004,
@@ -44,7 +56,8 @@ class Person {
 		});
 		this.lower_right_leg = Matter.Bodies.rectangle(params.x , params.y + params.upper_length, params.lower_width, params.lower_length, {
 			friction: 0.8,
-			restitution: 0.1,
+			frictionAir: 0.01,
+			restitution: 0.2,
 			density: 0.05,
 			collisionFilter: {
 				category: 0x0004,
@@ -172,11 +185,37 @@ class Person {
 	think(boundary) {
 		let ground = boundary.ground;
 		let distance_from_ground = ground.position.y - ((this.upper_left_leg.position.y + this.upper_right_leg.position.y + this.lower_right_leg.position.y + this.lower_left_leg.position.y) / 4)
-		let torque = this.upper_left_leg.angularVelocity + this.upper_right_leg.angularVelocity + this.lower_right_leg.angularVelocity + this.lower_left_leg.angularVelocity;
-		let vx = this.upper_left_leg.velocity.x + this.upper_right_leg.velocity.x + this.lower_right_leg.velocity.x + this.lower_left_leg.velocity.x;
-		let vy = this.upper_left_leg.velocity.y + this.upper_right_leg.velocity.y + this.lower_right_leg.velocity.y + this.lower_left_leg.velocity.y;
-		let input = [distance_from_ground / width, vx / 4, vy / 4, torque / 4];
+		// let torque = this.upper_left_leg.angularVelocity + this.upper_right_leg.angularVelocity + this.lower_right_leg.angularVelocity + this.lower_left_leg.angularVelocity;
+		// let vx = this.upper_left_leg.velocity.x + this.upper_right_leg.velocity.x + this.lower_right_leg.velocity.x + this.lower_left_leg.velocity.x;
+		// let vy = this.upper_left_leg.velocity.y + this.upper_right_leg.velocity.y + this.lower_right_leg.velocity.y + this.lower_left_leg.velocity.y;
+		// let input = [distance_from_ground / width, vx / 4, vy / 4, torque / 4];
 
+		let input = [distance_from_ground / width,
+					this.upper_left_leg.velocity.x,
+					this.upper_right_leg.velocity.x,
+					this.lower_right_leg.velocity.x,
+					this.lower_left_leg.velocity.x,
+					this.upper_left_leg.velocity.y,
+					this.upper_right_leg.velocity.y,
+					this.lower_right_leg.velocity.y,
+					this.lower_left_leg.velocity.y,
+					this.upper_left_leg.angularVelocity,
+					this.upper_right_leg.angularVelocity,
+					this.lower_right_leg.angularVelocity,
+					this.lower_left_leg.angularVelocity,
+					this.upper_left_leg.torque,
+					this.upper_right_leg.torque,
+					this.lower_right_leg.torque,
+					this.lower_left_leg.torque,
+					Math.sin(this.upper_left_leg.angle),
+					Math.sin(this.upper_right_leg.angle),
+					Math.sin(this.lower_right_leg.angle),
+					Math.sin(this.lower_left_leg.angle),
+					Math.cos(this.upper_left_leg.angle),
+					Math.cos(this.upper_right_leg.angle),
+					Math.cos(this.lower_right_leg.angle),
+					Math.cos(this.lower_left_leg.angle)
+				];
 		let result = this.brain.predict(input);
 
 		// this.move_m1(result[0]);
@@ -202,7 +241,7 @@ class Person {
 
 	mutate() {
 		function fn(x) {
-			if (random(1) < 0.05) {
+			if (random(1) < 0.1) {
 				let offset = randomGaussian() * 0.5;
 				let newx = x + offset;
 				return newx;
@@ -227,6 +266,12 @@ class Person {
 		let parentB_in_dna = partner.brain.input_weights.dataSync();
 		let parentB_out_dna = partner.brain.output_weights.dataSync();
 
+		// alpha = randomGaussian();
+		// let child_in_dna = vectorWeightedSum(parentA_in_dna, parentB_in_dna, alpha);
+		// let child_out_dna = vectorWeightedSum(parentA_out_dna, parentB_out_dna, alpha);
+		// child_in_dna = for (var i = 0; i < a.length; i++) { c.push([a[i], b[i]]);
+		// }
+		
 		let mid = Math.floor(Math.random() * parentA_in_dna.length);
 		let child_in_dna = [...parentA_in_dna.slice(0, mid), ...parentB_in_dna.slice(mid, parentB_in_dna.length)];		
 		let child_out_dna = [...parentA_out_dna.slice(0, mid), ...parentB_out_dna.slice(mid, parentB_out_dna.length)];
